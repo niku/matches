@@ -10,6 +10,8 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_map: ^7.0.0
+  flutter_map_marker_popup: # After v7.0.0 release, use just ^7.0.0
+    git: https://github.com/pento/flutter_map_marker_popup.git
   sqlite3: ^2.4.3
 
 dev_dependencies:
