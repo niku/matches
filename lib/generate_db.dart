@@ -57,7 +57,8 @@ CREATE TABLE IF NOT EXISTS venues (
   final venuesFile = File('./data/venues.csv');
   final venuesCsvData =
       const CsvToListConverter().convert(venuesFile.readAsStringSync());
-  for (final row in venuesCsvData) {
+  // to drop header, we use sublist(1)
+  for (final row in venuesCsvData.sublist(1)) {
     venuesStmt.execute(row);
   }
 
