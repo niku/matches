@@ -18,7 +18,7 @@ void main() async {
       'year,tournaments,sec,date,kickoff,home,score,away,venue,att,broadcast,homeTeamUrl,matchUrl,awayTeamUrl';
   final csvBody = const ListToCsvConverter()
       .convert(matchEvents.map((event) => event.toList()).toList());
-  await file.writeAsString(csvHeader + '\n' + csvBody);
+  await file.writeAsString(csvHeader + '\r\n' + csvBody);
 }
 
 void writeMatchEventsToCSVFile(
