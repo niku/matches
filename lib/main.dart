@@ -132,6 +132,43 @@ class _MyMapState extends State<MyMap> {
     }).toList();
   }
 
+  List<MatchEvent> _matches(final String venue) {
+    final resultSet = widget.database.select(
+        'SELECT year, tournaments, sec, date, kickoff, home, score, away, venue, att, broadcast, homeTeamUrl, matchUrl, awayTeamUrl FROM matches WHERE venue = ?;',
+        [venue]);
+    return resultSet.map((row) {
+      final year = row.columnAt(0);
+      final tournaments = row.columnAt(1);
+      final sec = row.columnAt(2);
+      final date = row.columnAt(3);
+      final kickoff = row.columnAt(4);
+      final home = row.columnAt(5);
+      final score = row.columnAt(6);
+      final away = row.columnAt(7);
+      final venue = row.columnAt(8);
+      final att = row.columnAt(9);
+      final broadcast = row.columnAt(10);
+      final homeTeamUrl = row.columnAt(11);
+      final matchUrl = row.columnAt(12);
+      final awayTeamUrl = row.columnAt(13);
+      return MatchEvent(
+          year: year,
+          tournaments: tournaments,
+          sec: sec,
+          date: date,
+          kickoff: kickoff,
+          home: home,
+          score: score,
+          away: away,
+          venue: venue,
+          att: att,
+          broadcast: broadcast,
+          homeTeamUrl: homeTeamUrl,
+          matchUrl: matchUrl,
+          awayTeamUrl: awayTeamUrl);
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return FlutterMap(
@@ -159,7 +196,7 @@ class _MyMapState extends State<MyMap> {
               builder: (BuildContext context, Marker marker) {
                 marker as VenueMarker;
                 final name = marker.name;
-                return Popup(marker, []);
+                return Popup(marker, _matches(name));
               },
             ),
           ),
@@ -189,28 +226,21 @@ class Popup extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Text(marker.name),
-          Table(
-            border: TableBorder.all(),
-            defaultColumnWidth: const IntrinsicColumnWidth(),
-            children: matches.map((e) {
-              return TableRow(children: <Widget>[
-                TableCell(
-                    child: Padding(
-                  padding: const EdgeInsets.all(1),
-                  child: Text(e.date),
-                )),
-                TableCell(
-                    child: Padding(
-                  padding: const EdgeInsets.all(1),
-                  child: Text(e.home),
-                )),
-                TableCell(
-                    child: Padding(
-                  padding: const EdgeInsets.all(1),
-                  child: Text(e.away),
-                )),
-              ]);
-            }).toList(),
+          DataTable(
+            columns: const [
+              DataColumn(label: Text('日程')),
+              DataColumn(label: Text('HOME')),
+              DataColumn(label: Text('AWAY')),
+            ],
+            rows: matches
+                .map((match) => DataRow(
+                      cells: [
+                        DataCell(Text(match.date)),
+                        DataCell(Text(match.home)),
+                        DataCell(Text(match.away)),
+                      ],
+                    ))
+                .toList(),
           ),
         ],
       ),
