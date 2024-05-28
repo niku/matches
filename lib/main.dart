@@ -1,11 +1,18 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_marker_popup/flutter_map_marker_popup.dart';
 import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart';
+import 'package:matches/match_event.dart';
 import 'package:sqlite3/wasm.dart';
 
 Future<WasmSqlite3> _sqlite3 = WasmSqlite3.loadFromUrl(
     Uri.parse('sqlite3.wasm')); // assume existing web/sqlite3.wasm
+
+final MapController _mapController = MapController();
+final PopupController _popupLayerController = PopupController();
 
 void main() {
   runApp(const MainApp());
@@ -78,19 +85,8 @@ class _MyHomePageState extends State<MyHomePage> {
           future: db,
           builder: (context, snapshot) {
             if (snapshot.hasData) {
-              const sql =
-                  'SELECT name, latitude, longitude FROM venues ORDER BY name;';
-              final resultSet = snapshot.data!.select(sql);
-              return DataTable(
-                columns: resultSet.columnNames
-                    .map((e) => DataColumn(label: Text(e)))
-                    .toList(),
-                rows: resultSet.rows.map((row) {
-                  return DataRow(
-                      cells: row.map((cell) {
-                    return DataCell(Text(cell.toString()));
-                  }).toList());
-                }).toList(),
+              return MyMap(
+                database: snapshot.data!,
               );
             } else if (snapshot.hasError) {
               return Text('${snapshot.error}');
@@ -99,6 +95,124 @@ class _MyHomePageState extends State<MyHomePage> {
             return const CircularProgressIndicator();
           },
         ),
+      ),
+    );
+  }
+}
+
+class MyMap extends StatefulWidget {
+  MyMap({super.key, required this.database});
+
+  final defaultCenter = const LatLng(35.676, 139.650);
+  final double defaultZoom = 6;
+  final defaultMaxBounds =
+      LatLngBounds(const LatLng(20.0, 122.0), const LatLng(50.0, 154.0));
+  final CommonDatabase database;
+
+  @override
+  State<StatefulWidget> createState() {
+    return _MyMapState();
+  }
+}
+
+class _MyMapState extends State<MyMap> {
+  List<VenueMarker> _venueMarkers() {
+    final resultSet =
+        widget.database.select('SELECT name, latitude, longitude FROM venues;');
+    return resultSet.map((row) {
+      final name = row.columnAt(0) as String;
+      final latitude = row.columnAt(1) as double;
+      final longitude = row.columnAt(2) as double;
+      final marker = VenueMarker(
+        name: name,
+        point: LatLng(latitude, longitude),
+        child: const Icon(Icons.location_on),
+      );
+      return marker;
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FlutterMap(
+      mapController: _mapController,
+      options: MapOptions(
+        initialCenter: widget.defaultCenter,
+        initialZoom: widget.defaultZoom,
+        cameraConstraint:
+            CameraConstraint.contain(bounds: widget.defaultMaxBounds),
+        onTap: (_, __) => _popupLayerController
+            .hideAllPopups(), // Hide popup when the map is tapped.
+        interactionOptions: const InteractionOptions(
+          flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+        ),
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        ),
+        PopupMarkerLayer(
+          options: PopupMarkerLayerOptions(
+            popupController: _popupLayerController,
+            markers: _venueMarkers(),
+            popupDisplayOptions: PopupDisplayOptions(
+              builder: (BuildContext context, Marker marker) {
+                marker as VenueMarker;
+                final name = marker.name;
+                return Popup(marker, []);
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class VenueMarker extends Marker {
+  const VenueMarker(
+      {required this.name, required super.point, required super.child});
+
+  final String name;
+}
+
+class Popup extends StatelessWidget {
+  final VenueMarker marker;
+  final List<MatchEvent> matches;
+
+  const Popup(this.marker, this.matches, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(marker.name),
+          Table(
+            border: TableBorder.all(),
+            defaultColumnWidth: const IntrinsicColumnWidth(),
+            children: matches.map((e) {
+              return TableRow(children: <Widget>[
+                TableCell(
+                    child: Padding(
+                  padding: const EdgeInsets.all(1),
+                  child: Text(e.date),
+                )),
+                TableCell(
+                    child: Padding(
+                  padding: const EdgeInsets.all(1),
+                  child: Text(e.home),
+                )),
+                TableCell(
+                    child: Padding(
+                  padding: const EdgeInsets.all(1),
+                  child: Text(e.away),
+                )),
+              ]);
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
