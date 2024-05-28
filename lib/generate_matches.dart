@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:html/dom.dart';
 import 'package:html/parser.dart';
 import 'package:matches/match_event.dart';
+import 'package:csv/csv.dart';
 
 void main() async {
   final competition_years = '2024'; // TODO: take year from command line
@@ -10,7 +12,38 @@ void main() async {
   final body = await http.read(url);
   final document = parse(body);
   final matchEvents = extractMatchEvents(document);
-  print(matchEvents);
+  final file = await File('./data/matches_$competition_years.csv')
+      .create(recursive: true);
+  final csvHeader =
+      'year,tournaments,sec,date,kickoff,home,score,away,venue,att,broadcast,homeTeamUrl,matchUrl,awayTeamUrl';
+  final csvBody = const ListToCsvConverter()
+      .convert(matchEvents.map((event) => event.toList()).toList());
+  await file.writeAsString(csvHeader + '\n' + csvBody);
+}
+
+void writeMatchEventsToCSVFile(
+    final IOSink sink, final List<MatchEvent> matchEvents) {
+  final csv = const ListToCsvConverter()
+      .convert(matchEvents.map((event) => event.toList()).toList());
+  final header = [
+    'year',
+    'tournaments',
+    'sec',
+    'date',
+    'kickoff',
+    'home',
+    'score',
+    'away',
+    'venue',
+    'att',
+    'broadcast',
+    'homeTeamUrl',
+    'matchUrl',
+    'awayTeamUrl'
+  ];
+  sink.write(header.join(','));
+  sink.write('\n');
+  sink.write(csv);
 }
 
 List<MatchEvent> extractMatchEvents(final Document document) {
