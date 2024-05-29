@@ -222,29 +222,26 @@ class Popup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text(marker.name),
-          DataTable(
-            columns: const [
-              DataColumn(label: Text('日程')),
-              DataColumn(label: Text('HOME')),
-              DataColumn(label: Text('AWAY')),
-            ],
-            rows: matches
-                .map((match) => DataRow(
-                      cells: [
-                        DataCell(Text(match.date)),
-                        DataCell(Text(match.home)),
-                        DataCell(Text(match.away)),
-                      ],
-                    ))
-                .toList(),
-          ),
-        ],
-      ),
+    return SizedBox(
+      width: 300,
+      height: 300,
+      child: Card(
+          child: ListView(
+        shrinkWrap: true,
+        children: matches
+            .map((match) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Expanded(flex: 2, child: Text(match.date)),
+                      Expanded(flex: 1, child: Text(match.home)),
+                      Expanded(flex: 1, child: Text(match.away)),
+                    ],
+                  ),
+                ))
+            .toList(),
+      )),
     );
   }
 }
